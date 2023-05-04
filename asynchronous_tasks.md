@@ -65,7 +65,9 @@ In later versions of the standard, C++ has introduced parallel
 algorithms (e.g. std::for_each, which has the ability to behave
 like Fortran 2008 DO CONCURRENT).
 
+### OpenMP Tasks
 
+OpenMP 
 
 
 
