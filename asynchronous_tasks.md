@@ -67,7 +67,17 @@ like Fortran 2008 DO CONCURRENT).
 
 ### OpenMP Tasks
 
-OpenMP 
+OpenMP 3.1 introduced tasks on top of the existing threading model.
+The 3.1 version of tasks did not support dependencies, other than
+parent tasks waiting on child tasks.  In OpenMP 4.0, task
+dependencies were introduced, which permitted the synchronization
+of tasks using memory locations as identifiers.  The implementation
+of task dependencies is considerably more complicated, and is
+a cautionary tale for Fortran.
+
+### OpenACC Async
+
+OpenACC
 
 
 
