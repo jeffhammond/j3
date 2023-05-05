@@ -231,4 +231,7 @@ is lesser will be eliminated from the program execution
 time, because they will happen concurrently.  The pointless 
 time spent in WAIT will be replaced with something useful.
 
+### Data parallel operations
+
+NVIDIA Fortran
 
