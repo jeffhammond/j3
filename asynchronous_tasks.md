@@ -77,7 +77,21 @@ a cautionary tale for Fortran.
 
 ### OpenACC Async
 
-OpenACC
+OpenACC has `async`, which provides a queue-like mechanism for
+allowing asynchronous execution of certain features.  This is
+a natural match when OpenACC targets another device, such as a
+GPU, which natural executives asynchronously relative to the
+host controlling it.
+
+OpenACC `async` does not allow interactions between different
+asynchonrous regions, and furthermore offers multiple streams
+of asynchrony, enumerated as integers.  Because asynchronous
+regions cannot interact, it is legal for an implementation to
+ignore asynchrony and wait for completion of such regions
+before proceeding.  This allows naive implementations or ones
+that only target CPUs, where asynchronous parallel execution
+might not be productive.
+
 
 
 
