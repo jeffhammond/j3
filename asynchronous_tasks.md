@@ -167,8 +167,68 @@ relative to the synchronous GPU implementation.
 https://pubs.acs.org/doi/abs/10.1021/ct100584w
 https://dl.acm.org/doi/10.1145/2425676.2425687
 
+## Opportunities for Asynchrony in Fortran
 
+There are at least four different types of opportunities
+for asynchrony in Fortran:
 
+  1. `DO CONCURRENT` execution on coprocessors, specialized or not.
+  2. Data parallel intrinsics such as `MATMUL`.
+  3. coarray communications, especially collectives.
+  4. general code not included above.
 
+We will describe the associated use cases in more detail below.
+
+### `DO CONCURRENT`
+
+If `DO CONCURRENT` is executed a separate processor, as is
+available with the Intel and NVIDIA compilers today, then
+the implementation looks like this:
+
+Before:
+```
+DO CONCURRENT (i=1:N) SHARED(X,Y,Z)
+  Z(i) = X(i) + Y(i)
+END DO
+CALL toimia()
+```
+
+After:
+```
+COPY X(1:N) and Y(1:N) to GPU
+ALLOCATE Z(1:N) on the GPU
+INVOKE Z(:) = X(:) + Y(:)
+WAIT on the GPU
+COPY Z(1:N) to the CPU
+CALL toimia()
+```
+
+In contrast, by adding the asynchronous feature of OpenACC,
+we will achieve the following:
+
+Before:
+```
+!$ACC PARALLEL LOOP ASYNC
+DO CONCURRENT (i=1:N) SHARED(X,Y,Z)
+  Z(i) = X(i) + Y(i)
+END DO
+CALL toimia()
+!$ACC WAIT
+```
+
+After:
+```
+COPY X(1:N) and Y(1:N) to GPU
+ALLOCATE Z(1:N) on the GPU
+INVOKE Z(:) = X(:) + Y(:)
+CALL toimia()
+WAIT on the GPU
+COPY Z(1:N) to the CPU
+```
+
+Whichever of the time spent in `toimia()` or WAIT+COPY
+is lesser will be eliminated from the program execution
+time, because they will happen concurrently.  The pointless 
+time spent in WAIT will be replaced with something useful.
 
 
