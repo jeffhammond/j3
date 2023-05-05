@@ -92,6 +92,34 @@ before proceeding.  This allows naive implementations or ones
 that only target CPUs, where asynchronous parallel execution
 might not be productive.
 
+## Motivating Examples
+
+###
+
+
+### Quantum chemical many-body theory
+
+Quantum chemical many-body theory requires the computation
+of a large number of terms (dozens to hundreds), many of which
+are independent of one another.  In a Fortran implementation
+where `DO CONCURRENT` and intrinsics like `MATMUL` are capable
+of being executed asynchronously relative to the rest of the
+program, the availability of an asynchronous or task-like
+mechanism allows a more efficient implementation of this than
+is otherwise possible.
+
+Shown below is the computational graph associated with one
+version of the populare CCSD method.  It has been implemented
+using GPU parallelism, and asynchronous execution of 
+data parallel kernels and matrix multiplication operations
+enables better utilization of the GPU and overlap of 
+computation and data movement, leading to a 2.5x speedup
+relative to the synchronous GPU implementation.
+
+<img width="655" alt="Screenshot 2023-05-05 at 15 50 53" src="https://user-images.githubusercontent.com/406118/236462123-a13e2476-7371-4d56-9a11-dcb96c85c5d6.png">
+
+https://pubs.acs.org/doi/abs/10.1021/ct100584w
+https://dl.acm.org/doi/10.1145/2425676.2425687
 
 
 
