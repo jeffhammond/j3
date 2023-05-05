@@ -94,8 +94,54 @@ might not be productive.
 
 ## Motivating Examples
 
-###
+### Basic Overlap
 
+Modern computers have many different execution units, some
+which are fully general, like CPU cores, and others which 
+are specialized.  For example, Intel's latest server CPU
+(codename: Sapphire Rapids) has at least three different
+on-chip accelerators, including the Data Streaming Accelerator
+(DSA), which is capable of executing data parallel operations
+fill, copy and compare faster than and asynchronous relative
+to the CPU cores.  While current Fortran compilers could
+utilize the DSA for `DO CONCURRENT`, the current semantics
+provide no mechanism for the programmer to encourage such
+a region to be executed on the DSA while returning control
+immediately to allow the CPU to execute the following code.
+
+https://www.intel.com/content/www/us/en/developer/articles/technical/scalable-io-between-accelerators-host-processors.html
+
+Similar compute engines to DSA exist for the capability
+required by Fortran's `MATMUL`, for example.  Processors
+from Apple, Intel and NVIDIA have dedicated matrix units,
+which are separate silicon from the rest of the process
+and may be capable of executing independently, i.e.
+asynchronously.
+
+Even without special processing engines, all modern CPUs,
+including ones found in cheap cell phones, contain multiple
+cores.  While Fortran permits programs to utilize parallelism
+across cores using coarrays and `DO CONCURRENT`, the former
+does not support shared-memory and thus requires unnecessary
+copies of data between images when cores can access the same
+data coherently, and the latter is limited to highly structured
+data parallelism and prohibits impure procedures.  There are
+uncountable examples of less structured models for multicore
+parallelism, including OS threads, that can be expressed in 
+terms of asynchronous tasks.
+
+Finally, and of great relevance to the Fortran community,
+are the use of accelerators or coprocessors, which are
+attached to CPUs via a high-bandwidth interconnect, and which
+support a large portion of Fortran programming language.
+Recently, both NVIDIA and Intel have begun to support
+`DO CONCURRENT` on GPUs, but the current semantics do not
+permit the programmer to describe the asynchronous nature
+of GPU computing, which is default in native APIs like
+OpenCL, CUDA, HIP and SYCL (or Intel's Data Parallel C++).
+Fortran programs that use OpenMP or OpenACC can achieve
+asynchronous behavior in `DO CONCURRENT`, but not without
+stepping outside of the standard.
 
 ### Quantum chemical many-body theory
 
