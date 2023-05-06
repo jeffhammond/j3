@@ -102,21 +102,33 @@ are specialized.  For example, Intel's latest server CPU
 (codename: Sapphire Rapids) has at least three different
 on-chip accelerators, including the Data Streaming Accelerator
 (DSA), which is capable of executing data parallel operations
-fill, copy and compare faster than and asynchronous relative
-to the CPU cores.  While current Fortran compilers could
-utilize the DSA for `DO CONCURRENT`, the current semantics
-provide no mechanism for the programmer to encourage such
-a region to be executed on the DSA while returning control
-immediately to allow the CPU to execute the following code.
+like fill, copy and compare faster than the CPU cores,
+and also asynchronously relative to them.
+While current Fortran compilers could utilize the DSA for
+`DO CONCURRENT`, the current semantics provide no mechanism 
+for the programmer to encourage such a region to be executed
+on the DSA while returning control immediately to allow the
+CPU to execute the following code.
 
 https://www.intel.com/content/www/us/en/developer/articles/technical/scalable-io-between-accelerators-host-processors.html
+
+Recent NVIDIA GPUs also contain asynchronous copy engines
+within the processor, in addition to the asynchronous
+DMAs for copying outside of the GPU.
+
+https://developer.nvidia.com/blog/controlling-data-movement-to-boost-performance-on-ampere-architecture/
+https://docs.nvidia.com/cuda/cuda-driver-api/api-sync-behavior.html
+https://images.nvidia.com/aem-dam/en-zz/Solutions/data-center/nvidia-ampere-architecture-whitepaper.pdf
 
 Similar compute engines to DSA exist for the capability
 required by Fortran's `MATMUL`, for example.  Processors
 from Apple, Intel and NVIDIA have dedicated matrix units,
-which are separate silicon from the rest of the process
+which are separate silicon from the general purpose logic
 and may be capable of executing independently, i.e.
 asynchronously.
+
+https://nod.ai/comparing-apple-m1-with-amx2-m1-with-neon/
+https://www.intel.com/content/www/us/en/products/docs/accelerator-engines/advanced-matrix-extensions/overview.html
 
 Even without special processing engines, all modern CPUs,
 including ones found in cheap cell phones, contain multiple
@@ -128,7 +140,16 @@ data coherently, and the latter is limited to highly structured
 data parallelism and prohibits impure procedures.  There are
 uncountable examples of less structured models for multicore
 parallelism, including OS threads, that can be expressed in 
-terms of asynchronous tasks.
+terms of asynchronous tasks.  For example, if one has N
+independent operations and N cores, annotating the operations
+as asynchronous allows them to run in parallel across cores.
+While it is possible for compilers to do such transformations,
+they rarely do, because proving the profitability is difficult
+and being too aggressive here risks offending the user.
+This is not unlike the possibility for autoparallelization
+of `DO` loops, and the reason why `DO CONCURRENT` exists to
+allow programmers to describe the desired behavior of a
+program to the compiler.
 
 Finally, and of great relevance to the Fortran community,
 are the use of accelerators or coprocessors, which are
@@ -143,7 +164,23 @@ Fortran programs that use OpenMP or OpenACC can achieve
 asynchronous behavior in `DO CONCURRENT`, but not without
 stepping outside of the standard.
 
+## Asynchronous Communication
+
+Asynchronous communication is regarded as an important
+tool for scaling distributed applications.  Library-based
+communication such as MPI and OpenSHMEM includes
+non-blocking operations, which are allowed to behave
+asynchronously relative to the calling context.
+While coarray operations may be asynchronous between images,
+i.e. "one-sided", collective operations are synchronous -
+there is no mechanism to express a pipeline of collectives,
+or overlap of collectives with computation.
+
 ### Quantum chemical many-body theory
+
+This is a specific example of the basic overlap described
+above, which has been proven to be enormously beneficial
+to performance in a real-world scientific application.
 
 Quantum chemical many-body theory requires the computation
 of a large number of terms (dozens to hundreds), many of which
@@ -174,8 +211,8 @@ for asynchrony in Fortran:
 
   1. `DO CONCURRENT` execution on coprocessors, specialized or not.
   2. Data parallel intrinsics such as `MATMUL`.
-  3. coarray communications, especially collectives.
-  4. general code not included above.
+  3. Coarray communications, especially collectives.
+  4. General code not included above.
 
 We will describe the associated use cases in more detail below.
 
@@ -233,5 +270,104 @@ time spent in WAIT will be replaced with something useful.
 
 ### Data parallel operations
 
-NVIDIA Fortran
+NVIDIA Fortran supports execution of numerous data parallel
+operations on GPUs, including `MATMUL`, `TRANSPOSE`, and
+array assignments.  The underlying library implementation
+of these routines in CUDA is naturally asynchronous, but
+the Fortran compiler has no standard syntax to expose that
+to users.  Today, it must rely on OpenACC directives,
+i.e. the `async` statement described above, to allow the
+programmer to express their intent and to coordinate one
+or more streams of execution that are permitted to execute
+asynchronously relative to one another.
+
+It is not possible to solve this problem with `DO CONCURRENT`
+because the compiler may map these statements to the GPU,
+and Fortran provides no way to map `DO CONCURRENT` to different
+devices, or nest multiple `DO CONCURRENT` regions, where the
+outer one uses CPU threads and the inner one uses a GPU.
+
+### Asynchronous Communication
+
+In the following program, there is no need to synchronize
+images between coarray collectives, or finish any of them
+before initiating the PRINT operation.
+
+```fortran
+subroutine stuff(A,B,C,D)
+implicit none
+double, intent(inout) :: A, B, C
+double, intent(in) :: D(:)
+call co_sum(A)
+call co_min(B)
+call co_max(C)
+print*,D
+end subroutine stuff
+```
+
+In MPI-3, it is natural to express the independent nature
+of these operations using nonblocking collectives.
+
+```fortran
+subroutine stuff(A,B,C,D)
+use mpi_f08
+implicit none
+double, intent(inout) :: A, B, C
+double, intent(in) :: D(:)
+type(MPI_Request) :: R(3)
+call MPI_Iallreduce(MPI_IN_PLACE, A, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD, R(1))
+call MPI_Iallreduce(MPI_IN_PLACE, B, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD, R(2))
+call MPI_Iallreduce(MPI_IN_PLACE, C, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD, R(3))
+print*,D
+call MPI_Waitall(3,R,MPI_STATUSES_IGNORE)
+end subroutine stuff
+```
+
+An asynchronous syntax for coarray communications would allow 
+Fortran compilers to exploit asynchronous communication libraries
+like MPI.
+
+### Other Asynchronous Operations
+
+Any time two or more operations or regions of code contains no 
+conflicting data references, they may be executed independently.
+In theory, compilers can recognize this automatically, but as
+nearly all forms of asynchronous execution require non-zero
+runtime overhead, compilers will not do so unless they can
+prove profitability.  Proving both the lack of conflicting
+data references and profitability is extremely difficult.
+This is the reason why essentially all successful implementations
+of parallelism and asynchrony are explicit.
+
+In the most explicit forms of asynchrony, the programmer creates
+a thread in their program and associates with it a procedure
+to execute, and conflicting data references, known as race
+conditions, must be dealt with explicitly using atomic operations
+or other synchronization primitives.
+
+In Ada, the underlying mechanism of asynchrony is not exposed,
+and the programmer describes tasks, which will be implemented
+using threads or similar, by the Ada runtime library.  Because
+Ada tasks are permitted to synchronous, e.g. using the 
+rendezvous, they must be implemented in such a way that task
+synchronization cannot deadlock.  This requires that tasks
+be mapped to parallel execution agents or that the runtime
+library schedule tasks concurrently, e.g. using coroutines.
+
+In contrast to Ada, OpenMP tasks are not required to use
+independent execution agents and therefore cannot synchronize
+with one another without the possibility of deadlock, in
+contrast to OpenMP threads.  Similarly, OpenACC `async`
+does not require an independent execution agent and cannot
+synchronize with other asynchronous regions.
+
+While Ada, C and C++ allow tasks/threads to synchronize,
+but OpenMP tasks and OpenACC async may not, they both
+permit essentially arbitrary code to execute within them,
+limited only by the semantics of concurrent data access.
+All of the above provide mechanics for describing the
+potential for concurrent data access, whether or not they
+permit such access to implement synchronization.
+
+
 
