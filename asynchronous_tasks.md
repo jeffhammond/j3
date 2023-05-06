@@ -369,5 +369,42 @@ All of the above provide mechanics for describing the
 potential for concurrent data access, whether or not they
 permit such access to implement synchronization.
 
+## Syntax and Semantics for Fortran Asynchrony
+
+The terms asynchronous, concurrent and parallel are heavily
+used in computing, not always in consistent ways.
+Because Fortran already defines ASYNCHRONOUS in the context
+of data, we will not reuse it to describe execution,
+at least as syntax.  We will however, use the term to describe
+when execution units are independent of one another.
+
+Inspired by Ada, the syntax `TASK` will be used to describe
+a region that is asynchronous relative to the parent task.
+However, like OpenMP tasks, Fortran tasks should not permit
+synchronization between tasks since this requires a more
+involved implementation.  Like `DO CONCURRENT`, a `TASK`
+is a programmer hint that it is allowed, desired, and/or
+profitable to implement the contained code using an
+asynchronous mechanism, such as an OS thread or a dedicated
+execution unit that operates independently of the primary
+CPU computing logic.
+
+A `TASK` extends `BLOCK`.  It is expected that implementing
+`TASK` as `BLOCK` is legal, in the same way that implementing
+`DO CONCURRENT` as `DO` is legal, but that high-quality
+implementations will do more.
+
+Because tasks - including the implicit task of the program -
+may execute independently of one another, the programmer
+must not make conflicting data accesses.  Concurrent reads
+are not conflicting and always permitted.  Writes that are
+concurrent with other reads or writes will have
+unspecified, implementation-defined behavior.
+Unlike `DO CONCURRENT`, which explicitly prohibits impure
+procedures, Fortran tasks may call any procedures.
+The burden is on the programmer to avoid conflicting data
+accesses, in the same way that coarray programs should not
+do so.
+
 
 
