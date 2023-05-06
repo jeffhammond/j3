@@ -406,5 +406,55 @@ The burden is on the programmer to avoid conflicting data
 accesses, in the same way that coarray programs should not
 do so.
 
+While tasks execute independently of their parent task,
+a sequence of tasks created by the same parent will
+execute in sequence relative to one another.  In order
+to relax this behavior, tasks may be associated with
+different streams of execution.  A stream of execution
+for tasks is labeled with an integer.
+
+Streams of tasks are synchronized to the parent task via
+the `TASK WAIT [<stream>]` statement.  If no stream
+index is provided, the `TASK WAIT` statement synchronizes
+all streams.
+
+The above syntax and semantics of streams is similar to
+OpenACC `async`, and thus is known to be implementable
+by multiple compilers.  It is also similar to OpenMP
+constructs with `NOWAIT` or tasks without dependencies.
+
+Ada tasks provide a number of important semantics to exclude
+problematic programs.  For example, a parent task may
+not terminate while a child task has an outstanding data
+reference, since this would create incorrect and difficult
+to debug programs.  Similarly, Fortran tasks implicitly
+wait on child tasks unless the child task contains no references
+to data associated with the parent task.
+
+("Concurrent and Real-Time Programming in Ada" by Alan Burns and Andy Wellings)
+
+Fortran tasks need a way to describe the access properties of
+data.  Locality specifiers are similar to what OpenMP and OpenACC
+use to describe the behavior or asynchronous/task regions and can
+be reused.  A Fortran `TASK` region begins with `LOCALITY` statements
+such as the following:
+
+```fortran
+TASK [<stream>]
+  LOCALITY(SHARED) :: X(:) ! shared but conflicting accesses are prohibited
+  LOCALITY(LOCAL_INIT) :: IBEGIN, IEND, IX
+  REAL :: A
+  A = COS(IX)
+  X(IBEGIN:IEND) = A
+END TASK
+```
+
+The above task assigns to a range of the array X, as prescribed by
+the indices provided by the parent task.
+
+The `REDUCE` locality specifier is not permitted in tasks.
+All data declared within a task cannot be accessed by the parent
+but may be accessed by child tasks, according to the child tasks
+locality statements.
 
 
