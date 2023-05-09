@@ -5,7 +5,7 @@
 The principle of asynchrony is fundamental to many aspects of computing,
 and appears in many forms, many of which already overlap with the use of
 Fortran.  Fortran supports asynchronous execution already via coarrays,
-since two coarrays execute independent of one another unless explicitly
+since two images execute independent of one another unless explicitly
 synchronized.  However, some use cases for asynchrony are a poor fit for
 coarrays, either due to the need for data to be distributed across images
 and explicitly communicated between them, or because the number of images
