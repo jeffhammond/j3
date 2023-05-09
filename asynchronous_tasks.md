@@ -414,7 +414,7 @@ different streams of execution.  A stream of execution
 for tasks is labeled with an integer.
 
 Streams of tasks are synchronized to the parent task via
-the `TASK WAIT [<stream>]` statement.  If no stream
+the `TASK WAIT [(stream-number[,stream-number]...)]` statement, where `stream-number` is a *scalar-integer-expression*.  If no stream
 index is provided, the `TASK WAIT` statement synchronizes
 all streams.
 
@@ -440,7 +440,7 @@ be reused.  A Fortran `TASK` region begins with `LOCALITY` statements
 such as the following:
 
 ```fortran
-TASK [<stream>]
+TASK [(stream-number[,stream-number]...)]
   LOCALITY(SHARED) :: X(:) ! shared but conflicting accesses are prohibited
   LOCALITY(LOCAL_INIT) :: IBEGIN, IEND, IX
   REAL :: A
