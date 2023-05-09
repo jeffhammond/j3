@@ -80,7 +80,7 @@ a cautionary tale for Fortran.
 OpenACC has `async`, which provides a queue-like mechanism for
 allowing asynchronous execution of certain features.  This is
 a natural match when OpenACC targets another device, such as a
-GPU, which natural executives asynchronously relative to the
+GPU, which naturally executes asynchronously relative to the
 host controlling it.
 
 OpenACC `async` does not allow interactions between different
