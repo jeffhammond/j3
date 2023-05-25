@@ -440,7 +440,7 @@ be reused.  A Fortran `TASK` region begins with `LOCALITY` statements
 such as the following:
 
 ```fortran
-TASK [(stream-number[,stream-number]...)]
+TASK [(stream-number)]
   LOCALITY(SHARED) :: X(:) ! shared but conflicting accesses are prohibited
   LOCALITY(LOCAL_INIT) :: IBEGIN, IEND, IX
   REAL :: A
