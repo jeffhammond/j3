@@ -164,7 +164,7 @@ Fortran programs that use OpenMP or OpenACC can achieve
 asynchronous behavior in `DO CONCURRENT`, but not without
 stepping outside of the standard.
 
-## Asynchronous Communication
+### Asynchronous Communication
 
 Asynchronous communication is regarded as an important
 tool for scaling distributed applications.  Library-based
