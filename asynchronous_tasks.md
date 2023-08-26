@@ -348,7 +348,7 @@ or other synchronization primitives.
 In Ada, the underlying mechanism of asynchrony is not exposed,
 and the programmer describes tasks, which will be implemented
 using threads or similar, by the Ada runtime library.  Because
-Ada tasks are permitted to synchronous, e.g. using the 
+Ada tasks are permitted to synchronize, e.g. using the 
 rendezvous, they must be implemented in such a way that task
 synchronization cannot deadlock.  This requires that tasks
 be mapped to parallel execution agents or that the runtime
