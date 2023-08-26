@@ -168,7 +168,7 @@ stepping outside of the standard.
 
 Asynchronous communication is regarded as an important
 tool for scaling distributed applications.  Library-based
-communication such as MPI and OpenSHMEM includes
+communication such as MPI and OpenSHMEM include
 non-blocking operations, which are allowed to behave
 asynchronously relative to the calling context.
 While coarray operations may be asynchronous between images,
